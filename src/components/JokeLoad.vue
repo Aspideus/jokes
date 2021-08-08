@@ -9,14 +9,14 @@
     <div class="search_window">
       <input type="text" v-model="search" placeholder="Введите слово для поиска среди анекдотов">
     </div>
-
-    <div v-for="jokeData in jokesDataList.jokes" :key="jokeData">
-      <div class="joke_card" :class="{liked_card}">
-        <div class="">
+<!-- jokesDataList.jokes -->
+    <div v-for="(jokeData,index) in jokesDataList.jokes" :key="jokeData">
+      <div class="joke_card" :id="index">
+        <div class="joke_text">
           <div><span>{{jokeData.joke}}{{jokeData.setup}}</span></div>
           <div><span>{{jokeData.delivery}}</span></div>
         </div>
-        <button class="joke_like" @click="liked_card = !liked_card"><img src="../assets/like_w.png" alt="Like"/></button>
+        <button class="joke_like" @click = "add_like(index, jokeData)"><img src="../assets/like_w.png" alt="Like"/></button>
       </div>
       <br/>
     </div>
@@ -34,19 +34,50 @@ export default {
   data() {
     return {
       jokesDataList: [],
-      search: '',
-      liked_card: false
+      search: ''
     };
   },
   computed: {
+    filteredCards: function() {
+      console.log(this.jokesDataList.jokes);
+
+      return this.jokesDataList.jokes.filter((jokeData) => {
+          return jokeData.match(this.search);
+      })
+      ;
+    }
     
   },
   created() {
+
+    localStorage.clear();
       fetch("https://v2.jokeapi.dev/joke/Any?amount=10")
         .then(response => response.json())
         .then(data => (this.jokesDataList = data));
-    
+      
   },
+  methods: {
+     add_like: function(number, joke) {
+
+      let joke_text;
+      if (joke.joke != undefined) 
+        joke_text = joke.joke;
+      else {
+        joke_text = joke.setup + ' ' + joke.delivery;
+      }
+      
+      document.getElementById(number).classList.toggle("liked_card");
+
+        if (localStorage.getItem(`num${number}`)) {
+          localStorage.removeItem(`num${number}`)
+          localStorage.removeItem(`joke${number}`);
+        }
+        else {
+          localStorage.setItem(`num${number}`, number);
+          localStorage.setItem(`joke${number}`, joke_text);
+        }
+    }
+  }
 
 }
 
