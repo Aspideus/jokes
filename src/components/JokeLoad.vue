@@ -9,14 +9,14 @@
     <div class="search_window">
       <input type="text" v-model="search" placeholder="Введите слово для поиска среди анекдотов">
     </div>
-<!-- jokesDataList.jokes -->
-    <div v-for="(jokeData,index) in jokesDataList.jokes" :key="jokeData">
-      <div class="joke_card" :id="index">
+    <!-- jokesDataList.jokes -->
+    <div v-for="(jokeData,index) in filteredCards" :key="jokeData">
+      <div class="joke_card" :id="jokeData.id">
         <div class="joke_text">
           <div><span>{{jokeData.joke}}{{jokeData.setup}}</span></div>
           <div><span>{{jokeData.delivery}}</span></div>
         </div>
-        <button class="joke_like" @click = "add_like(index, jokeData)"><img src="../assets/like_w.png" alt="Like"/></button>
+        <button class="joke_like" @click = "add_like(index, jokeData);"><img src="../assets/like_w.png" alt="Like"/></button>
       </div>
       <br/>
     </div>
@@ -37,24 +37,45 @@ export default {
       search: ''
     };
   },
-  computed: {
-    filteredCards: function() {
-      console.log(this.jokesDataList.jokes);
-
-      return this.jokesDataList.jokes.filter((jokeData) => {
-          return jokeData.match(this.search);
-      })
-      ;
-    }
-    
-  },
   created() {
-
-    localStorage.clear();
+    //localStorage.clear();
       fetch("https://v2.jokeapi.dev/joke/Any?amount=10")
         .then(response => response.json())
         .then(data => (this.jokesDataList = data));
+
+  },
+  computed: {
+    filteredCards: function() {
+      let search_string = this.search;
+      let joke_list = this.jokesDataList.jokes;
       
+      //на первой загрузке страницы он возвращает undefined, так и пусть они просто грузятся все
+      if (joke_list !== undefined) {
+        return joke_list.filter(function (jokeData) {
+
+        if (localStorage.getItem(`joke${jokeData.id}`)) {
+          //document.getElementById(jokeData.id).classList.add("liked_card");
+          //console.log(document.getElementById(jokeData.id));
+          if (document.getElementById(jokeData.id) != null)
+            document.getElementById(jokeData.id).classList.add("liked_card");
+        }
+
+          if (search_string == undefined)
+            return jokeData;
+          else {
+            if (jokeData.joke != undefined)
+              return jokeData.joke.toLowerCase().match(search_string.toLowerCase());
+            else { //проверим есть ли совпадение в сетапе
+              if (jokeData.setup.toLowerCase().match(search_string.toLowerCase()) != null)
+                return jokeData.setup.toLowerCase().match(search_string.toLowerCase());
+              else
+                return jokeData.delivery.toLowerCase().match(search_string.toLowerCase());
+            }
+          }
+        });
+      }
+      return joke_list;
+    }
   },
   methods: {
      add_like: function(number, joke) {
@@ -66,21 +87,21 @@ export default {
         joke_text = joke.setup + ' ' + joke.delivery;
       }
       
-      document.getElementById(number).classList.toggle("liked_card");
+      document.getElementById(joke.id).classList.toggle("liked_card");
 
-        if (localStorage.getItem(`num${number}`)) {
-          localStorage.removeItem(`num${number}`)
-          localStorage.removeItem(`joke${number}`);
+        if (localStorage.getItem(`joke${joke.id}`)) {
+          //при перезагрузке страницы чтобы правильно отображалось (допустим поменяли порядок)
+          if(localStorage.getItem(`joke${joke.id}`) != joke_text)
+            localStorage.setItem(`joke${joke.id}`, joke_text);
+          else
+            localStorage.removeItem(`joke${joke.id}`);
         }
         else {
-          localStorage.setItem(`num${number}`, number);
-          localStorage.setItem(`joke${number}`, joke_text);
+          localStorage.setItem(`joke${joke.id}`, joke_text);
         }
     }
   }
-
 }
-
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -142,6 +163,7 @@ a {
   left: 0;
   height: 75px;
   background-color: var(--color-primary);
+  color: var(--color-bg);
   width: 100%;
 }
 .header_body {
